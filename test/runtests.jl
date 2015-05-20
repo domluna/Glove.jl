@@ -31,7 +31,10 @@ for (w, id) = vocab
 end
 
 cv = GloVe.make_cooccur(vocab, corpus)
-M = GloVe.train!(GloVe.Model(cv, vecsize=10), GloVe.Adagrad(500))
+model = GloVe.Model(cv, vecsize=10)
+GloVe.train!(model, GloVe.Adagrad(500))
+
+M = model.W_main
 sim_words = GloVe.similar_words(M, vocab, id2word, "trees", n=10)
 println(sim_words)
 @test "graph" in sim_words[1:2]

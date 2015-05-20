@@ -16,7 +16,6 @@ function CoVector(comatrix::SparseMatrixCSC)
 end
 
 abstract Solver
-
 type Adagrad <: Solver
     niter::Int
     lrate::Float64
@@ -52,7 +51,7 @@ end
 function train!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
     J = 0.0
 
-        shuffle!(m.covec)
+    shuffle!(m.covec)
     for n=1:s.niter
         # shuffle indices
         @inbounds for i = 1:length(m.covec)
@@ -75,9 +74,9 @@ function train!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
             m.b[l1, :] -= s.lrate * fdiff ./ sqrt(m.bgrad[l1, :])
             m.b[l2, :] -= s.lrate * fdiff ./ sqrt(m.bgrad[l2, :])
 
+            fdiff *= fdiff
             m.Wgrad[l1, :] += grad_main .^ 2
             m.Wgrad[l2, :] += grad_ctx .^ 2
-            fdiff *= fdiff
             m.bgrad[l1, :] += fdiff
             m.bgrad[l2, :] += fdiff
 

@@ -1,6 +1,6 @@
 module GloVe
 
 include("corpus.jl")
-include("model.jl")
+include("model_1.jl")
 
 end

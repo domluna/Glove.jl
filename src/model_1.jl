@@ -41,15 +41,16 @@ end
 # Each vocab word in associated with a word vector and a context vector.
 function Model(comatrix; vecsize=100)
     vs = size(comatrix, 1)
+    vecsize += 1
     Model(
         (rand(vs, vecsize) - 0.5) / vecsize,
         (rand(vs, vecsize) - 0.5) / vecsize,
-        (rand(vs) - 0.5),
-        (rand(vs) - 0.5),
-        (rand(vs, vecsize) - 0.5) / vecsize,
-        (rand(vs, vecsize) - 0.5) / vecsize,
-        (rand(vs) - 0.5),
-        (rand(vs) - 0.5),
+        (rand(vs) - 0.5) / vecsize,
+        (rand(vs) - 0.5) / vecsize,
+        rand(vs, vecsize),
+        rand(vs, vecsize),
+        rand(vs),
+        rand(vs),
         CoVector(comatrix),
     )
 end
@@ -71,15 +72,15 @@ function train!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
             fdiff = ifelse(co.v < xmax, (co.v / xmax) ^ alpha, 1.0) * diff
             J += 0.5 * fdiff * diff
 
+            fdiff *= s.lrate
             grad_main = fdiff * m.W_ctx[l2, :]
             grad_ctx = fdiff * m.W_main[l1, :] 
 
             # Adaptive learning
-            m.W_main[l1, :] -= s.lrate * grad_main ./ sqrt(m.W_main_grad[l1, :])
-            m.W_ctx[l2, :] -= s.lrate * grad_ctx ./ sqrt(m.W_ctx_grad[l2, :])
-
-            m.b_main[l1, :] -= s.lrate * fdiff ./ sqrt(m.b_main_grad[l1, :])
-            m.b_ctx[l2, :] -= s.lrate * fdiff ./ sqrt(m.b_ctx_grad[l2, :])
+            m.W_main[l1, :] -= grad_main ./ sqrt(m.W_main_grad[l1, :])
+            m.W_ctx[l2, :] -= grad_ctx ./ sqrt(m.W_ctx_grad[l2, :])
+            m.b_main[l1, :] -= fdiff ./ sqrt(m.b_main_grad[l1, :])
+            m.b_ctx[l2, :] -= fdiff ./ sqrt(m.b_ctx_grad[l2, :])
 
             # Gradients
             fdiff *= fdiff
@@ -96,9 +97,8 @@ function train!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
     end
 
     # Average the main and context vectors
-    M = m.W_main[1:end, :] + m.W_ctx[1:end, :]
-    M /= size(M, 2)
-    M
+    m.W_main[1:end, :] += m.W_ctx[1:end, :]
+    m.W_main /= size(m.W_main, 2)
 end
 
 function similar_words(M::Matrix, vocab, id2word, word; n=10)
