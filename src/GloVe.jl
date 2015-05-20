@@ -1,5 +1,6 @@
 module GloVe
 
-# package code goes here
+include("corpus.jl")
+include("model.jl")
 
-end # module
+end
