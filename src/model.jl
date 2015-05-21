@@ -16,6 +16,7 @@ function CoVector(comatrix::SparseMatrixCSC)
 end
 
 abstract Solver
+
 type Adagrad <: Solver
     niter::Int
     lrate::Float64
@@ -25,26 +26,36 @@ Adagrad(niter) = Adagrad(niter, 0.05)
 Adagrad(niter, lrate) = Adagrad(niter, lrate)
 
 # GloVe model
+# TODO: combine bias with weight matrix?
 type Model{T}
-    W::Matrix{T}
-    Wgrad::Matrix{T}
-    b::Vector{T}
-    bgrad::Vector{T}
+    W_main::Matrix{T}
+    W_ctx::Matrix{T}
+    b_main::Vector{T}
+    b_ctx::Vector{T}
+    W_main_grad::Matrix{T}
+    W_ctx_grad::Matrix{T}
+    b_main_grad::Vector{T}
+    b_ctx_grad::Vector{T}
     covec::Vector{Cooccurence}
-    vs::Int
 end
 
 # Each vocab word in associated with a word vector and a context vector.
-# word vectors are in rows 1..vs and context vectors are rows 1+vs..2vs
+# The paper initializes the weights to values [-0.5, 0.5] / vecsize+1 and
+# the gradients to 1.0.
+#
+# The +1 term is for the bias.
 function Model(comatrix; vecsize=100)
-    vs = size(comatrix)[1]
+    vs = size(comatrix, 1)
     Model(
-        (rand(vs*2, vecsize) - 0.5) / vecsize,
-        rand(vs*2, vecsize),
-        (rand(vs*2) - 0.5) / vecsize,
-        rand(vs*2),
+        (rand(vs, vecsize) - 0.5) / (vecsize + 1),
+        (rand(vs, vecsize) - 0.5) / (vecsize + 1),
+        (rand(vs) - 0.5) / (vecsize + 1),
+        (rand(vs) - 0.5) / (vecsize + 1),
+        ones(vs, vecsize),
+        ones(vs, vecsize),
+        ones(vs),
+        ones(vs),
         CoVector(comatrix),
-        vs
     )
 end
 
@@ -58,27 +69,29 @@ function train!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
             co = m.covec[i]
 
             # locations
-            l1 = co.i
-            l2 = m.vs + co.j
+            l1 = co.i # main
+            l2 = co.j # context
 
-            diff = m.W[l1,:] * m.W[l2,:]' + m.b[l1] + m.b[l2] - log(co.v)
+            diff = m.W_main[l1,:] * m.W_ctx[l2,:]' + m.b_main[l1] + m.b_ctx[l2] - log(co.v)
             fdiff = ifelse(co.v < xmax, (co.v / xmax) ^ alpha, 1.0) * diff
             J += 0.5 * fdiff * diff
 
-            grad_main = fdiff * m.W[l2, :]
-            grad_ctx = fdiff * m.W[l1, :] 
+            fdiff *= s.lrate
+            grad_main = fdiff * m.W_ctx[l2, :]
+            grad_ctx = fdiff * m.W_main[l1, :] 
 
             # Adaptive learning
-            m.W[l1, :] -= s.lrate * grad_main ./ sqrt(m.Wgrad[l1, :])
-            m.W[l2, :] -= s.lrate * grad_ctx ./ sqrt(m.Wgrad[l2, :])
-            m.b[l1, :] -= s.lrate * fdiff ./ sqrt(m.bgrad[l1, :])
-            m.b[l2, :] -= s.lrate * fdiff ./ sqrt(m.bgrad[l2, :])
+            m.W_main[l1, :] -= grad_main ./ sqrt(m.W_main_grad[l1, :])
+            m.W_ctx[l2, :] -= grad_ctx ./ sqrt(m.W_ctx_grad[l2, :])
+            m.b_main[l1, :] -= fdiff ./ sqrt(m.b_main_grad[l1, :])
+            m.b_ctx[l2, :] -= fdiff ./ sqrt(m.b_ctx_grad[l2, :])
 
+            # Gradients
             fdiff *= fdiff
-            m.Wgrad[l1, :] += grad_main .^ 2
-            m.Wgrad[l2, :] += grad_ctx .^ 2
-            m.bgrad[l1, :] += fdiff
-            m.bgrad[l2, :] += fdiff
+            m.W_main_grad[l1, :] += grad_main .^ 2
+            m.W_ctx_grad[l2, :] += grad_ctx .^ 2
+            m.b_main_grad[l1, :] += fdiff
+            m.b_ctx_grad[l2, :] += fdiff
 
         end
 
@@ -86,26 +99,17 @@ function train!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
             println("iteration $n, cost $J")
         end
     end
+
+    #= vecsize = size(m.W_main, 2) =#
     # Average the main and context vectors
-    M = m.W[1:m.vs, :] + m.W[m.vs+1:end, :]
-    M /= size(M, 2)
+    #= m.W_main[1:end, :] += m.W_ctx[1:end, :] =#
+    #= m.W_main /= vecsize =#
+end
+
+# Average the main and context matrices/bias vectors. 
+function combine(m::Model)
+    vecsize = size(m.W_main, 2)
+    M = m.W_main + m.W_ctx .+ (m.b_main / vecsize) .+ (m.b_ctx / vecsize)
+    M /= (vecsize + 1)
     M
 end
-
-function similar_words(M::Matrix, vocab, id2word, word; n=10)
-    c_id = vocab[word]
-    dists = vec(M * M[c_id, :]') / norm(M[c_id, :]) / norm(M, 2)
-    sorted_ids = sortperm(dists, rev=true)[1:n+1]
-    sim_words = Any[]
-
-    for i=1:length(sorted_ids)
-        id = sorted_ids[i]
-        if c_id == id
-            continue
-        end
-        word = id2word[id]
-        push!(sim_words, word)
-    end
-    sim_words
-end
-

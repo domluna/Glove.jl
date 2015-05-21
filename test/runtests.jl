@@ -30,12 +30,14 @@ for (w, id) = vocab
     id2word[id] = w
 end
 
-cv = GloVe.make_cooccur(vocab, corpus)
-model = GloVe.Model(cv, vecsize=10)
+comatrix = GloVe.make_cooccur(vocab, corpus)
+model = GloVe.Model(comatrix, vecsize=10)
 GloVe.train!(model, GloVe.Adagrad(500))
 
-M = model.W_main
-sim_words = GloVe.similar_words(M, vocab, id2word, "trees", n=10)
-println(sim_words)
-@test "graph" in sim_words[1:2]
+# model is trained
+M = GloVe.combine(model)
+top_word = GloVe.similar_words(M, vocab, id2word, "trees", n=1)[1]
+@test top_word == "graph"
+top_word = GloVe.similar_words(M, vocab, id2word, "graph", n=1)[1]
+@test top_word == "trees"
 
