@@ -25,14 +25,17 @@ Sometimes I build a graph
 Sometimes I build trees""", '\n')
 
 vocab = GloVe.make_vocab(corpus)
+comatrix = GloVe.make_cooccur(vocab, corpus)
+model = GloVe.Model(comatrix, vecsize=10)
+
+# run for 500 iterations
+solver = GloVe.Adagrad(500)
+GloVe.train!(model, solver)
+
 id2word = Dict()
 for (w, id) = vocab
     id2word[id] = w
 end
-
-comatrix = GloVe.make_cooccur(vocab, corpus)
-model = GloVe.Model(comatrix, vecsize=10)
-GloVe.train!(model, GloVe.Adagrad(500))
 
 # model is trained
 M = GloVe.combine(model)

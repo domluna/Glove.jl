@@ -1,4 +1,4 @@
-type Cooccurence{Ti,Tj<:Int, T}
+immutable Cooccurence{Ti,Tj<:Int, T}
     i::Ti
     j::Tj
     v::T
@@ -59,28 +59,36 @@ function Model(comatrix; vecsize=100)
     )
 end
 
+# TODO: figure out memory issue
+# pretty sure it has to do with slice allocations
 function train!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
     J = 0.0
-
     shuffle!(m.covec)
+
+    vecsize = size(m.W_main, 2)
+    eltype = typeof(m.b_main[1])
+
     for n=1:s.niter
         # shuffle indices
-        @inbounds for i = 1:length(m.covec)
-            co = m.covec[i]
+        for i = 1:length(m.covec)
+            l1 = m.covec[i].i # main index
+            l2 = m.covec[i].j # context index
+            v = m.covec[i].v
 
-            # locations
-            l1 = co.i # main
-            l2 = co.j # context
+            vm = m.W_main[l1, :]
+            vc = m.W_ctx[l2, :]
 
-            diff = m.W_main[l1,:] * m.W_ctx[l2,:]' + m.b_main[l1] + m.b_ctx[l2] - log(co.v)
-            fdiff = ifelse(co.v < xmax, (co.v / xmax) ^ alpha, 1.0) * diff
+            diff = dot(vec(vm), vec(vc)) + m.b_main[l1] + m.b_ctx[l2] - log(v)
+            fdiff = ifelse(v < xmax, (v / xmax) ^ alpha, 1.0) * diff
             J += 0.5 * fdiff * diff
 
             fdiff *= s.lrate
+            # inc memory by ~200 MB && running time by 2x
             grad_main = fdiff * m.W_ctx[l2, :]
-            grad_ctx = fdiff * m.W_main[l1, :] 
+            grad_ctx = fdiff * m.W_main[l1, :]
 
             # Adaptive learning
+            # inc ~ 600MB + 0.75s
             m.W_main[l1, :] -= grad_main ./ sqrt(m.W_main_grad[l1, :])
             m.W_ctx[l2, :] -= grad_ctx ./ sqrt(m.W_ctx_grad[l2, :])
             m.b_main[l1, :] -= fdiff ./ sqrt(m.b_main_grad[l1, :])
@@ -92,18 +100,12 @@ function train!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
             m.W_ctx_grad[l2, :] += grad_ctx .^ 2
             m.b_main_grad[l1, :] += fdiff
             m.b_ctx_grad[l2, :] += fdiff
-
         end
 
-        if n % 10 == 0
-            println("iteration $n, cost $J")
-        end
+        #= if n % 10 == 0 =#
+        #=     println("iteration $n, cost $J") =#
+        #= end =#
     end
-
-    #= vecsize = size(m.W_main, 2) =#
-    # Average the main and context vectors
-    #= m.W_main[1:end, :] += m.W_ctx[1:end, :] =#
-    #= m.W_main /= vecsize =#
 end
 
 # Average the main and context matrices/bias vectors. 
