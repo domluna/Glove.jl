@@ -4,6 +4,7 @@ if VERSION < v"0.4.0-dev"
     using Docile
 end
 
+# Not sure if I'll need this yet.
 using Compat
 
 include("corpus.jl")

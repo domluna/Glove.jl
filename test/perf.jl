@@ -18,3 +18,6 @@ vocab = GloVe.make_vocab(corpus)
 comatrix = GloVe.make_cooccur(vocab, corpus)
 model = GloVe.Model(comatrix, vecsize=100)
 solver = GloVe.Adagrad(1)
+
+# 1 iteration
+@time GloVe.train!(model, solver)
