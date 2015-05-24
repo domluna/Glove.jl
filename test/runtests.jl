@@ -1,6 +1,8 @@
 import GloVe
 using Base.Test
 
+# Test from python GloVe implementation.
+# https://github.com/maciejkula/glove-python/tree/master/glove/tests
 vocab = Dict(["a", "naive", "fox"], [1,2,3])
 corpus = [["a naive fox"]]
 
