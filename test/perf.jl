@@ -14,14 +14,12 @@ I like trees and stuff
 Sometimes I build a graph
 Sometimes I build trees""", '\n')
 
-# 
-function bench()
-end
-
 vocab = GloVe.make_vocab(corpus)
 comatrix = GloVe.make_cooccur(vocab, corpus)
 model = GloVe.Model(comatrix, vecsize=100)
-solver = GloVe.Adagrad(1)
+solver = GloVe.Adagrad(500)
 
-# 1 iteration
+# JIT compile
 @time GloVe.train!(model, solver)
+@time GloVe.train!(model, solver)
+

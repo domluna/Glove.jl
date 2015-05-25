@@ -69,7 +69,7 @@ function Model(comatrix; vecsize=100)
     )
 end
 
-function train!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
+function train!{T}(m::Model{T}, s::Adagrad; xmax::Int=100, alpha::T=0.75, verbose::Bool=false)
     J = 0.0
 
     shuffle!(m.covec)
@@ -122,7 +122,7 @@ function train!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
             m.b_ctx_grad[l2] += fdiff
         end
 
-        if n % 10 == 0
+        if verbose && n % 10 == 0
             println("iteration ", n, " cost ", J)
         end
     end

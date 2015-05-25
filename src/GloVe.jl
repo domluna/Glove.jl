@@ -1,5 +1,7 @@
 module GloVe
 
+import Base: haskey, getindex, setindex! 
+
 if VERSION < v"0.4.0-dev"
     using Docile
 end

@@ -2,18 +2,6 @@
 # with the GloVe model a bit easier
 # right off the bat.
 
-# combine averages the main and context matrices/bias vectors. 
-function combine(m::Model)
-    vecsize = size(m.W_main, 1)
-    vs = size(m.W_main, 2)
-    M = similar(m.W_main)
-
-    @inbounds for j = 1:vs, i = 1:vecsize
-        M[i, j] = m.W_main[i, j] + m.W_ctx[i, j] #+ (m.b_main[j] + m.b_ctx[j]) / vecsize
-    end
-    M
-end
-
 # similarity_matrix computes the similarities between all words.
 function similarity_matrix{T}(M::Matrix{T})
     SM = similar(M)
