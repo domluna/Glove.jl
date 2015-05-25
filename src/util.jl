@@ -4,21 +4,36 @@
 
 # combine averages the main and context matrices/bias vectors. 
 function combine(m::Model)
-    vecsize = size(m.W_main, 2)
-    M = m.W_main + m.W_ctx .+ (m.b_main / vecsize) .+ (m.b_ctx / vecsize)
-    M /= (vecsize + 1)
+    vecsize = size(m.W_main, 1)
+    vs = size(m.W_main, 2)
+    M = similar(m.W_main)
+
+    @inbounds for j = 1:vs, i = 1:vecsize
+        M[i, j] = m.W_main[i, j] + m.W_ctx[i, j] #+ (m.b_main[j] + m.b_ctx[j]) / vecsize
+    end
     M
 end
 
-# similar_words returns the n most similar words.
-function similar_words(M::Matrix, vocab, id2word, word; n=10)
-    c_id = vocab[word]
-    dists = vec(M * M[c_id, :]') / norm(M[c_id, :]) / norm(M, 2)
-    sorted_ids = sortperm(dists, rev=true)[1:n+1]
-    sim_words = Any[]
+# similarity_matrix computes the similarities between all words.
+function similarity_matrix{T}(M::Matrix{T})
+    SM = similar(M)
+    vecsize = size(M, 1)
+    vs = size(M, 2)
 
-    for i=1:length(sorted_ids)
-        id = sorted_ids[i]
+    for j = 1:vs, i = 1:vecsize
+    end
+    SM
+end
+
+# similar_words returns the n most similar words.
+function similar_words{T}(M::Matrix{T}, vocab, id2word, word; n=10)
+    c_id = vocab[word]
+
+    dists = vec(M[:, c_id]' * M) / norm(M[:, c_id]) / norm(M, 1)
+    sorted_ids = sortperm(dists, rev=true)[1:n+1]
+    sim_words = String[]
+
+    for id = sorted_ids
         if c_id == id
             continue
         end

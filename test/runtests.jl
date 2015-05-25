@@ -3,8 +3,8 @@ using Base.Test
 
 # Test from python GloVe implementation.
 # https://github.com/maciejkula/glove-python/tree/master/glove/tests
-vocab = Dict(["a", "naive", "fox"], [1,2,3])
-corpus = [["a naive fox"]]
+vocab = Dict(zip(["a", "naive", "fox"], [1,2,3]))
+corpus = ["a naive fox"]
 
 comatrix = GloVe.make_cooccur(vocab, corpus)
 expected = [0.0 1.0 0.5; 1.0 0.0 1.0; 0.5 1.0 0.0]
@@ -30,19 +30,21 @@ vocab = GloVe.make_vocab(corpus)
 comatrix = GloVe.make_cooccur(vocab, corpus)
 model = GloVe.Model(comatrix, vecsize=10)
 
-# run for 500 iterations
-solver = GloVe.Adagrad(500)
+# The corpus is very, very small.
+# So even with a large amount of iterations
+# this test may fail.
+solver = GloVe.Adagrad(1000)
 GloVe.train!(model, solver)
 
-id2word = Dict()
+id2word = Dict{Int, String}()
 for (w, id) = vocab
     id2word[id] = w
 end
 
 # model is trained
 M = GloVe.combine(model)
-top_word = GloVe.similar_words(M, vocab, id2word, "trees", n=1)[1]
-@test top_word == "graph"
-top_word = GloVe.similar_words(M, vocab, id2word, "graph", n=1)[1]
-@test top_word == "trees"
+top_words = GloVe.similar_words(M, vocab, id2word, "trees", n=10)[1:3]
+@test in("graph", top_words)
+top_words = GloVe.similar_words(M, vocab, id2word, "graph", n=10)[1:3]
+@test in("trees", top_words)
 

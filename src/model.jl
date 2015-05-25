@@ -1,14 +1,19 @@
+# Cooccurence represents a co-occurence between two word ids.
+# i is the id of the main word, j is the id of the context word.
+# v is the co-occurence value between the two words.
 immutable Cooccurence{Ti,Tj<:Int, T}
     i::Ti
     j::Tj
     v::T
 end
 
-CoVector(n::Int) = Array(Cooccurence, n)
-function CoVector(comatrix::SparseMatrixCSC)
+# CoVector creates an Vector of Cooccurence's.
+# In 0.4 this is most likely not required due to
+# improvements to Sparse Linear Algebra.
+function CoVector{T}(comatrix::SparseMatrixCSC{T})
     aa = findnz(comatrix)
     n = length(aa[1])
-    a = CoVector(n)
+    a = Array(Cooccurence{Int, Int, T}, n)
     @inbounds for i = 1:n
         a[i] = Cooccurence(aa[1][i], aa[2][i], aa[3][i])
     end
@@ -17,15 +22,21 @@ end
 
 abstract Solver
 
+# Adagrad is the method used for optimization in the paper. However,
+# other methods may show better results.
+#
+# 
 type Adagrad <: Solver
     niter::Int
     lrate::Float64
 end
 
+# 0.05 is the learning rate used in the paper
 Adagrad(niter) = Adagrad(niter, 0.05)
 Adagrad(niter, lrate) = Adagrad(niter, lrate)
 
 # GloVe model
+# 
 type Model{T}
     W_main::Matrix{T}
     W_ctx::Matrix{T}
@@ -35,7 +46,7 @@ type Model{T}
     W_ctx_grad::Matrix{T}
     b_main_grad::Vector{T}
     b_ctx_grad::Vector{T}
-    covec::Vector{Cooccurence}
+    covec::Vector{Cooccurence{Int, Int, T}}
 end
 
 # Each vocab word in associated with a word vector and a context vector.
@@ -58,69 +69,61 @@ function Model(comatrix; vecsize=100)
     )
 end
 
-# TODO: figure out memory issue
 function train!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
     J = 0.0
+
     shuffle!(m.covec)
 
     vecsize = size(m.W_main, 1)
-    eltype = typeof(m.b_main[1])
-    vm = zeros(eltype, vecsize)
-    vc = zeros(eltype, vecsize)
-    grad_main = zeros(eltype, vecsize)
-    grad_ctx = zeros(eltype, vecsize)
+    S = eltype(m.b_main)
+    vm = zeros(S, vecsize)
+    vc = zeros(S, vecsize)
+    grad_main = zeros(S, vecsize)
+    grad_ctx = zeros(S, vecsize)
 
-    for n=1:s.niter
+    for n = 1:s.niter
         # shuffle indices
         for i = 1:length(m.covec)
             @inbounds l1 = m.covec[i].i # main index
             @inbounds l2 = m.covec[i].j # context index
             @inbounds v = m.covec[i].v
 
-            vm[:] = m.W_main[:, l1]
-            vc[:] = m.W_main[:, l2]
+            @inbounds for j = 1:vecsize
+                vm[j] = m.W_main[j, l1]
+                vc[j] = m.W_ctx[j, l2]
+            end
 
             diff = dot(vec(vm), vec(vc)) + m.b_main[l1] + m.b_ctx[l2] - log(v)
             fdiff = ifelse(v < xmax, (v / xmax) ^ alpha, 1.0) * diff
             J += 0.5 * fdiff * diff
 
             fdiff *= s.lrate
-            # inc memory by ~200 MB && running time by 2x
-            grad_main[:] = fdiff * m.W_ctx[:, l2]
-            grad_ctx[:] = fdiff * m.W_main[:, l1]
+            @inbounds for j = 1:vecsize
+                grad_main[j] = fdiff * m.W_ctx[j, l2]
+                grad_ctx[j] = fdiff * m.W_main[j, l1]
+            end
 
             # Adaptive learning
-            # inc ~ 600MB + 0.75s
-            #= @inbounds for ii = 1:vecsize =#
-            #=     m.W_main[ii, l1] -= grad_main[ii] / sqrt(m.W_main_grad[ii, l1]) =#
-            #=     m.W_ctx[ii, l2] -= grad_ctx[ii] / sqrt(m.W_ctx_grad[ii, l2]) =#
-            #=     m.b_main[l1] -= fdiff ./ sqrt(m.b_main_grad[l1]) =#
-            #=     m.b_ctx[l2] -= fdiff ./ sqrt(m.b_ctx_grad[l2]) =#
-            #= end =#
-
-            m.W_main[:, l1] -= grad_main ./ sqrt(m.W_main_grad[:, l1])
-            m.W_ctx[:, l2] -= grad_ctx ./ sqrt(m.W_ctx_grad[:, l2])
+            @inbounds for j = 1:vecsize
+                m.W_main[j, l1] -= grad_main[j] / sqrt(m.W_main_grad[j, l1])
+                m.W_ctx[j, l2] -= grad_ctx[j] / sqrt(m.W_ctx_grad[j, l2])
+            end
             m.b_main[l1] -= fdiff ./ sqrt(m.b_main_grad[l1])
             m.b_ctx[l2] -= fdiff ./ sqrt(m.b_ctx_grad[l2])
 
+
             # Gradients
             fdiff *= fdiff
-            m.W_main_grad[:, l1] += grad_main .^ 2
-            m.W_ctx_grad[:, l2] += grad_ctx .^ 2
+            @inbounds for j = 1:vecsize
+                m.W_main_grad[j, l1] += grad_main[j] ^ 2
+                m.W_ctx_grad[j, l2] += grad_ctx[j] ^ 2
+            end
             m.b_main_grad[l1] += fdiff
             m.b_ctx_grad[l2] += fdiff
         end
 
-        #= if n % 10 == 0 =#
-        #=     println("iteration $n, cost $J") =#
-        #= end =#
+        if n % 10 == 0
+            println("iteration ", n, " cost ", J)
+        end
     end
-end
-
-# Average the main and context matrices/bias vectors. 
-function combine(m::Model)
-    vecsize = size(m.W_main, 2)
-    M = m.W_main + m.W_ctx .+ (m.b_main / vecsize) .+ (m.b_ctx / vecsize)
-    M /= (vecsize + 1)
-    M
 end
