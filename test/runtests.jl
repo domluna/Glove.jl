@@ -1,6 +1,8 @@
 import GloVe
 using Base.Test
 
+include("util_funcs.jl")
+
 # Test from python GloVe implementation.
 # https://github.com/maciejkula/glove-python/tree/master/glove/tests
 vocab = Dict(zip(["a", "naive", "fox"], [1,2,3]))
@@ -43,8 +45,8 @@ end
 
 # model is trained
 M = model.W_main + model.W_ctx
-top_words = GloVe.similar_words(M, vocab, id2word, "trees", n=10)[1:3]
+top_words = similar_words(M, vocab, id2word, "trees", n=10)[1:3]
 @test in("graph", top_words)
-top_words = GloVe.similar_words(M, vocab, id2word, "graph", n=10)[1:3]
+top_words = similar_words(M, vocab, id2word, "graph", n=10)[1:3]
 @test in("trees", top_words)
 
