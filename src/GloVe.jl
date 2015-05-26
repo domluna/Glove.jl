@@ -11,6 +11,5 @@ using Compat
 
 include("corpus.jl")
 include("model.jl")
-include("util.jl")
 
 end
