@@ -7,10 +7,10 @@ immutable Cooccurence{Ti,Tj<:Int, T}
     v::T
 end
 
-# CoVector creates an Vector of Cooccurence's.
+# make_covector creates an Vector of Cooccurence's.
 # In 0.4 this is most likely not required due to
 # improvements to Sparse Linear Algebra.
-function CoVector{T}(comatrix::SparseMatrixCSC{T})
+function make_covector{T}(comatrix::SparseMatrixCSC{T})
     aa = findnz(comatrix)
     n = length(aa[1])
     a = Array(Cooccurence{Int, Int, T}, n)
@@ -65,7 +65,7 @@ function Model(comatrix; vecsize=100)
         ones(vecsize, vs),
         ones(vs),
         ones(vs),
-        CoVector(comatrix),
+        make_covector(comatrix),
     )
 end
 

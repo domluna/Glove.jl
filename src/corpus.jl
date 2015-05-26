@@ -1,43 +1,58 @@
+#
+#
 
-# Build a vocab from a corpus, vocab is a Dictionary
-# mapping words to ids.
-function make_vocab{T<:String}(corpus::Vector{T})
-    vocab = Dict{T, Integer}()
-    id = 1
+typealias Token Union(ASCIIString, UTF8String, SubString{ASCIIString}, SubString{UTF8String})
 
-    @inbounds for i=1:length(corpus) 
-        line = split(strip(corpus[i]))
-        for j=1:length(line)
-            word = line[j]
-            if !haskey(vocab, word)
-                vocab[word] = id
-                id += 1
+type Vocab 
+    d::Dict{Token, Int}
+    counter::Int
+end
+Vocab() = Vocab(Dict{Token, Int}(), 1)
+function getindex(v::Vocab, t::Token)  
+    id = get!(v.d, t, v.counter)
+    if id == v.counter # increment counter
+        v.counter += 1
+    end
+    id
+end
+length(v::Vocab) = length(v.d)
+
+function make_vocab(filename::String)
+    v = Vocab()
+    open(filename) do f
+        for line in eachline(f)
+            tokens = line |> strip |> split
+            for t = tokens
+                v[t]
             end
         end
     end
-    vocab
+    v
 end
 
-# Generates the co-occurence matrix X. X is symmetric by default.
-function make_cooccur(vocab, corpus; window=10)
-    comatrix = spzeros(length(vocab), length(vocab))
-    # fill the co-occurence matrix
-    @inbounds for i=1:length(corpus)
-        line = split(strip(corpus[i]))
-        for j=1:length(line)
-            lwindow = line[max(1, j-window):j-1]
-            c_id = vocab[line[j]]
+# Generates the co-occurence matrix X. X is symmetric.
+function make_cooccur(v::Vocab, filename::String; window::Int=10)
+    comatrix = spzeros(length(v), length(v))
+    open(filename) do f
+        for line in eachline(f)
+            tokens = split(line)
+            for i = 1:length(tokens)
+                @inbounds t = tokens[i]
+                c_id = v[t]
+                lwindow = tokens[max(1, i-window):i-1]
 
-            for (li, lword) = enumerate(lwindow)
-                l_id = vocab[lword]
+                for li = 1:length(lwindow)
+                    @inbounds lt = lwindow[li]
+                    l_id = v[lt]
 
-                # words that are d spaces spart, contribute
-                # 1.0 / d to the total count.
-                incr = 1.0 / (j - li)
+                    # words that are d spaces spart, contribute
+                    # 1.0 / d to the total count.
+                    incr = 1.0 / (i - li)
 
-                # symmetry
-                comatrix[c_id, l_id] += incr
-                comatrix[l_id, c_id] += incr
+                    # symmetry
+                    @inbounds comatrix[c_id, l_id] += incr
+                    @inbounds comatrix[l_id, c_id] += incr
+                end
             end
         end
     end

@@ -1,19 +1,31 @@
 # similar_words returns the n most similar words.
-function similar_words{T}(M::Matrix{T}, vocab, id2word, word; n=10)
-    c_id = vocab[word]
 
-    dists = vec(M[:, c_id]' * M) / norm(M[:, c_id]) / norm(M, 1)
-    
-    sorted_ids = sortperm(dists, rev=true)[1:n+1]
-    sim_words = String[]
+# read_stanford reads a file where each line is a word
+# and its corresponding vector.
+# 
+# Each line starts off with the word followed by n floating
+# point values where n is the word vector size.
 
-    for id = sorted_ids
-        if c_id == id
-            continue
+# m is a Matrix of size (vector_size, vocab_size)
+# 
+# Ex:
+#
+# the 0.80384 -1.0366 ... -1.0806 0.84718 -0.36196 
+function read_stanford{T}(filename::String, m::Matrix{T}; binary::Bool=false)
+    id = 1
+    vocab = Dict{Union(ASCIIString, UTF8String), Int}()
+    open(filename) do f
+        for line in eachline(f)
+            line = split(line)
+            word = line[1]
+
+            vocab[word] = id
+            @inbounds for i = 1:length(line)-1
+                M[i, id] = parse(T, line[i+1])
+            end
+
+            id += 1
         end
-        word = id2word[id]
-        push!(sim_words, word)
     end
-    sim_words
+    vocab
 end
-

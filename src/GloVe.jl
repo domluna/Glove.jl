@@ -1,6 +1,12 @@
 module GloVe
 
-import Base: haskey, getindex, setindex! 
+import Base: getindex, length
+
+export Model, Vocab, Token, Cooccurence,
+       Solver, Adagrad,
+       make_vocab, make_cooccur,
+       train!
+
 
 if VERSION < v"0.4.0-dev"
     using Docile
