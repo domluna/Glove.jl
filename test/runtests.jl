@@ -1,12 +1,13 @@
 import Glove
 using Base.Test
+using Compat
 
 # Test from python Glove implementation.
 # https://github.com/maciejkula/glove-python/tree/master/glove/tests
 corpus1 = "data/corpus_test1.txt"
 vocab = Glove.make_vocab(corpus1)
 @test vocab.counter == 4
-@test vocab.d == Dict("a" => 1, "naive" => 2, "fox" => 3)
+@test vocab.d == @compat Dict("a" => 1, "naive" => 2, "fox" => 3)
 
 # create the co-occurence matrix and vocab in 1 pass on the corpus.
 comatrix = Glove.make_cooccur(vocab, corpus1)
