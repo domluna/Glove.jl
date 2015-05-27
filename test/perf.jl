@@ -1,12 +1,12 @@
-import GloVe
+import Glove
 
 corpus = "data/corpus_test2.txt"
-vocab = GloVe.make_vocab(corpus)
-comatrix = GloVe.make_cooccur(vocab, corpus)
-model = GloVe.Model(comatrix, vecsize=100)
-solver = GloVe.Adagrad(500)
+vocab = Glove.make_vocab(corpus)
+comatrix = Glove.make_cooccur(vocab, corpus)
+model = Glove.Model(comatrix, vecsize=100)
+solver = Glove.Adagrad(500)
 
 # JIT compile
-@time GloVe.train!(model, solver)
-@time GloVe.train!(model, solver)
+@time Glove.train!(model, solver)
+@time Glove.train!(model, solver)
 
