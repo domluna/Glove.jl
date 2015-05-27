@@ -1,4 +1,4 @@
-module GloVe
+module Glove
 
 import Base: getindex, length
 

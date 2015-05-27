@@ -35,8 +35,7 @@ end
 Adagrad(niter) = Adagrad(niter, 0.05)
 Adagrad(niter, lrate) = Adagrad(niter, lrate)
 
-# GloVe model
-# 
+# Glove model
 type Model{T}
     W_main::Matrix{T}
     W_ctx::Matrix{T}
