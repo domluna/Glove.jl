@@ -7,6 +7,6 @@ model = Glove.Model(comatrix, vecsize=100)
 solver = Glove.Adagrad(500)
 
 # JIT compile
-@time Glove.train!(model, solver)
-@time Glove.train!(model, solver)
+@time Glove.fit!(model, solver)
+@time Glove.fit!(model, solver)
 

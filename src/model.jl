@@ -1,6 +1,6 @@
-# Cooccurence represents a co-occurence between two word ids.
-# i is the id of the main word, j is the id of the context word.
-# v is the co-occurence value between the two words.
+# Cooccurence represents a co-occurence between two tokens.
+# i is the id of the main token, j is the id of the context token.
+# v is the co-occurence value between the two tokens.
 immutable Cooccurence{Ti,Tj<:Int, T}
     i::Ti
     j::Tj
@@ -8,8 +8,9 @@ immutable Cooccurence{Ti,Tj<:Int, T}
 end
 
 # make_covector creates an Vector of Cooccurence's.
-# In 0.4 this is most likely not required due to
-# improvements to Sparse Linear Algebra.
+# 
+# TODO: Once Sparse Matrices are good enough this
+# will no longer be required.
 function make_covector{T}(comatrix::SparseMatrixCSC{T})
     aa = findnz(comatrix)
     n = length(aa[1])
@@ -20,20 +21,22 @@ function make_covector{T}(comatrix::SparseMatrixCSC{T})
     a
 end
 
+# Solver represents a solver using some variation of Gradient Descent.
+# http://en.wikipedia.org/wiki/Gradient_descent
 abstract Solver
 
 # Adagrad is the method used for optimization in the paper. However,
 # other methods may show better results.
-#
 # 
-type Adagrad <: Solver
-    niter::Int
-    lrate::Float64
+# http://www.ark.cs.cmu.edu/cdyer/adagrad.pdf
+type Adagrad{T} <: Solver
+    epochs::Int
+    lrate::T
 end
 
 # 0.05 is the learning rate used in the paper
-Adagrad(niter) = Adagrad(niter, 0.05)
-Adagrad(niter, lrate) = Adagrad(niter, lrate)
+Adagrad(epochs) = Adagrad(epochs, 0.05)
+Adagrad(epochs, lrate) = Adagrad(epochs, lrate)
 
 # Glove model
 type Model{T}
@@ -68,8 +71,9 @@ function Model(comatrix; vecsize=100)
     )
 end
 
-function train!{T}(m::Model{T}, s::Adagrad; xmax::Int=100, alpha::T=0.75, verbose::Bool=false)
-    J = 0.0
+# fit! fits the Model to the data through the gradient descent variation.
+function fit!{T}(m::Model{T}, s::Adagrad; xmax::Int=100, alpha::T=0.75, verbose::Bool=false)
+    J = zero(T)
 
     shuffle!(m.covec)
 
@@ -80,7 +84,7 @@ function train!{T}(m::Model{T}, s::Adagrad; xmax::Int=100, alpha::T=0.75, verbos
     grad_main = zeros(S, vecsize)
     grad_ctx = zeros(S, vecsize)
 
-    for n = 1:s.niter
+    for n = 1:s.epochs
         # shuffle indices
         for i = 1:length(m.covec)
             @inbounds l1 = m.covec[i].i # main index
@@ -93,7 +97,7 @@ function train!{T}(m::Model{T}, s::Adagrad; xmax::Int=100, alpha::T=0.75, verbos
             end
 
             diff = dot(vec(vm), vec(vc)) + m.b_main[l1] + m.b_ctx[l2] - log(v)
-            fdiff = ifelse(v < xmax, (v / xmax) ^ alpha, 1.0) * diff
+            fdiff = ifelse(v < xmax, (v / xmax) ^ alpha, one(T)) * diff
             J += 0.5 * fdiff * diff
 
             fdiff *= s.lrate
@@ -126,3 +130,27 @@ function train!{T}(m::Model{T}, s::Adagrad; xmax::Int=100, alpha::T=0.75, verbos
         end
     end
 end
+
+# similar_words returns the n most similar words
+function similar_words{T}(M::Matrix{T}, v::Vocab, id2word::Dict{Int, Token}, word::Token; n::Int=10)
+    c_id = v[word]
+
+    dists = vec(M[:, c_id]' * M) / norm(M[:, c_id]) / norm(M, 1)
+    
+    sorted_ids = sortperm(dists, rev=true)[1:n+1]
+    sim_words = Token[]
+
+    for id = sorted_ids
+        if c_id == id
+            continue
+        end
+        word = id2word[id]
+        push!(sim_words, word)
+    end
+    sim_words
+end
+
+
+# Like similar_words except computes a similarity for all tokens in the Vocab at once.
+#= function similarity_matrix{T}(M::Matrix{T}, v::Vocab, id2word::Dict{Int, Token}, word::Token) =#
+#= end =#

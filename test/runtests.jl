@@ -1,4 +1,4 @@
-import Glove
+using Glove
 using Base.Test
 using Compat
 
@@ -22,35 +22,13 @@ model = Glove.Model(comatrix, vecsize=10)
 # So even with a large amount of iterations
 # this test may fail.
 solver = Glove.Adagrad(1000)
-Glove.train!(model, solver)
+Glove.fit!(model, solver)
 
-id2word = Dict{Int, Glove.Token}()
-for (w, id) = vocab.d
-    id2word[id] = w
-end
+id2word = Glove.make_id2word(vocab)
 
-# similar_words returns the n most similar words
-function similar_words{T}(M::Matrix{T}, v::Glove.Vocab, id2word, word; n=10)
-    c_id = v[word]
-
-    dists = vec(M[:, c_id]' * M) / norm(M[:, c_id]) / norm(M, 1)
-    
-    sorted_ids = sortperm(dists, rev=true)[1:n+1]
-    sim_words = Glove.Token[]
-
-    for id = sorted_ids
-        if c_id == id
-            continue
-        end
-        word = id2word[id]
-        push!(sim_words, word)
-    end
-    sim_words
-end
-
-# model is trained
+# paper recommends adding the main and context matrices.
 M = model.W_main + model.W_ctx
-top_words = similar_words(M, vocab, id2word, "trees", n=10)[1:3]
+top_words = Glove.similar_words(M, vocab, id2word, "trees", n=10)[1:3]
 @test in("graph", top_words)
-top_words = similar_words(M, vocab, id2word, "graph", n=10)[1:3]
+top_words = Glove.similar_words(M, vocab, id2word, "graph", n=10)[1:3]
 @test in("trees", top_words)
