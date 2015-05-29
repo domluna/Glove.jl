@@ -5,7 +5,7 @@ import Base: getindex, length
 export Model, Vocab, Token, Cooccurence,
        Solver, Adagrad,
        make_vocab, make_cooccur, make_id2word,
-       similar_words, fit!
+       similar_words, fit, read_stanford!
 
 
 if VERSION < v"0.4.0-dev"
