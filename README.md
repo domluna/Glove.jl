@@ -27,7 +27,30 @@ fit!(model, solver, verbose=true)
 # We now have a fit Glove model!
 ```
 
+### Caveats
+
+1. File I/O is very slow
+
+Temporary solution. Load the file into main memory and go from there.
+
+```julia
+using Glove
+
+v = Vocab()
+corpus = split(readall("file"))
+
+@inbounds for i = 1:length(corpus)
+    v[corpus[i]]
+end
+```
+2. Sparse matrices are very slow
+
+For now I think using a Dict would be best.
+
+Hopefully these will get faster soon but for now I would recommend
+not to use it on large datasets.
+
 ### TODO
 
 1. Benchmark vs C implementation
-2. Nice notebook
+2. Nice notebook example
