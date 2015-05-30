@@ -125,9 +125,7 @@ function fit!{T}(m::Model{T}, s::Adagrad; xmax::Int=100, alpha::T=0.75, verbose:
             m.b_ctx_grad[l2] += fdiff
         end
 
-        if verbose && n % 10 == 0
-            println("iteration ", n, " cost ", J)
-        end
+        verbose && n % 10 == 0 && println("iteration ", n, " cost ", J)
     end
 end
 
