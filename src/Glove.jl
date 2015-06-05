@@ -1,11 +1,11 @@
 module Glove
 
-import Base: getindex, length, insert!
+import Base: insert!
 
 export Model, Vocab, Token, Cooccurence,
        Solver, Adagrad,
-       make_vocab, make_cooccur, make_id2word,
-       similar_words, fit, read_stanford!
+       make_vocab, make_cooccur,
+       similar_words, fit!
 
 
 if VERSION < v"0.4.0-dev"

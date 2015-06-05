@@ -27,9 +27,9 @@ function insert!{T<:Token}(v::Vocab, word::T)
     v.id2word[id] = word
 end
 
-getindex(v::Vocab, id::Int) = getindex(v.id2word, id)
-getindex{T<:Token}(v::Vocab, word::T) = getindex(v.word2id, word)
-length(v::Vocab) = length(v.id2word)
+Base.getindex(v::Vocab, id::Int) = getindex(v.id2word, id)
+Base.getindex{T<:Token}(v::Vocab, word::T) = getindex(v.word2id, word)
+Base.length(v::Vocab) = length(v.id2word)
 
 # Creates the Vocab from a textfile.
 function make_vocab(filename::String)
