@@ -5,6 +5,14 @@ Glove
 
 Implements [Global Word Vectors](http://nlp.stanford.edu/projects/glove/).
 
+### Install
+
+For now it's not on the main registry so
+
+```julia
+Pkg.clone("https://github.com/domluna/Glove.jl.git")
+```
+
 ### Usage
 
 ```julia
