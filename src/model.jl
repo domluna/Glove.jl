@@ -130,7 +130,7 @@ function fit!{T}(m::Model{T}, s::Adagrad; xmax::Int=100, alpha::T=0.75, verbose:
 end
 
 # similar_words returns the n most similar words
-function similar_words{T}(M::Matrix{T}, v::Vocab, id2word::Dict{Int, Token}, word::Token; n::Int=10)
+function similar_words{T, S<:Token}(M::Matrix{T}, v::Vocab, word::S; n::Int=10)
     c_id = v[word]
 
     dists = vec(M[:, c_id]' * M) / norm(M[:, c_id]) / norm(M, 1)
@@ -142,7 +142,7 @@ function similar_words{T}(M::Matrix{T}, v::Vocab, id2word::Dict{Int, Token}, wor
         if c_id == id
             continue
         end
-        word = id2word[id]
+        word = v[id]
         push!(sim_words, word)
     end
     sim_words

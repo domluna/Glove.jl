@@ -1,6 +1,6 @@
 module Glove
 
-import Base: getindex, length, show
+import Base: getindex, length, insert!
 
 export Model, Vocab, Token, Cooccurence,
        Solver, Adagrad,

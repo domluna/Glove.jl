@@ -1,4 +1,4 @@
-using Glove
+reload("Glove")
 using Base.Test
 using Compat
 
@@ -6,8 +6,11 @@ using Compat
 # https://github.com/maciejkula/glove-python/tree/master/glove/tests
 corpus1 = "data/corpus_test1.txt"
 vocab = Glove.make_vocab(corpus1)
-@test vocab.counter == 4
-@test vocab.d == @compat Dict("a" => 1, "naive" => 2, "fox" => 3)
+@test vocab.word2id == @compat Dict("a" => 1, "naive" => 2, "fox" => 3)
+@test vocab.id2word == @compat Dict(1 => "a", 2 => "naive",  3 => "fox")
+@test length(vocab) == 3
+@test vocab["fox"] == 3
+@test vocab[1] == "a"
 
 # create the co-occurence matrix and vocab in 1 pass on the corpus.
 comatrix = Glove.make_cooccur(vocab, corpus1)
@@ -24,11 +27,9 @@ model = Glove.Model(comatrix, vecsize=10)
 solver = Glove.Adagrad(1000)
 Glove.fit!(model, solver)
 
-id2word = Glove.make_id2word(vocab)
-
 # paper recommends adding the main and context matrices.
 M = model.W_main + model.W_ctx
-top_words = Glove.similar_words(M, vocab, id2word, "trees", n=10)[1:3]
+top_words = Glove.similar_words(M, vocab, "trees", n=10)[1:3]
 @test in("graph", top_words)
-top_words = Glove.similar_words(M, vocab, id2word, "graph", n=10)[1:3]
+top_words = Glove.similar_words(M, vocab, "graph", n=10)[1:3]
 @test in("trees", top_words)
