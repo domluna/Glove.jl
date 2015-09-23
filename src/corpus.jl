@@ -1,10 +1,9 @@
 #
-
 typealias Token Union(ASCIIString, UTF8String, SubString{ASCIIString}, SubString{UTF8String})
 
 # Vocab is a self-counting dictionary.
 # It maps words to ids and ids to words.
-# 
+#
 type Vocab
     id2word::Dict{Int, Token}
     word2id::Dict{Token, Int}
@@ -16,15 +15,11 @@ Vocab() = Vocab(Dict{Int, Token}(), Dict{Token, Int}())
 # If the word is already in the Vocab
 # nothing is done.
 function insert!{T<:Token}(v::Vocab, word::T)
-    if haskey(v.word2id, word)
-        # Not sure if this useful
-        #= error("$word already in Vocab.") =#
-        return
+    if !haskey(v.word2id, word)
+      id = length(v.id2word) + 1
+      v.word2id[word] = id
+      v.id2word[id] = word
     end
-
-    id = length(v.id2word) + 1
-    v.word2id[word] = id
-    v.id2word[id] = word
 end
 
 Base.getindex(v::Vocab, id::Int) = getindex(v.id2word, id)
@@ -32,9 +27,9 @@ Base.getindex{T<:Token}(v::Vocab, word::T) = getindex(v.word2id, word)
 Base.length(v::Vocab) = length(v.id2word)
 
 # Creates the Vocab from a textfile.
-function make_vocab(filename::String)
+function make_vocab(path::String)
     v = Vocab()
-    open(filename) do f
+    open(path) do f
         for line = eachline(f)
             tokens = split(line)
             @inbounds for i = 1:length(tokens)
@@ -49,7 +44,7 @@ end
 function make_vocab{T<:Token}(corpus::Vector{T})
     v = Vocab()
     @inbounds for i = 1:length(corpus)
-        insert!(v, tokens[i])
+        insert!(v, corpus[i])
     end
     v
 end
@@ -107,4 +102,3 @@ function make_cooccur{T<:Token}(v::Vocab, corpus::Vector{T}; window_size::Int=10
     end
     comatrix
 end
-

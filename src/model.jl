@@ -8,7 +8,7 @@ immutable Cooccurence{Ti,Tj<:Int, T}
 end
 
 # make_covector creates an Vector of Cooccurence's.
-# 
+#
 # TODO: Once Sparse Matrices are good enough this
 # will no longer be required.
 function make_covector{T}(comatrix::SparseMatrixCSC{T})
@@ -27,7 +27,7 @@ abstract Solver
 
 # Adagrad is the method used for optimization in the paper. However,
 # other methods may show better results.
-# 
+#
 # http://www.ark.cs.cmu.edu/cdyer/adagrad.pdf
 type Adagrad{T} <: Solver
     epochs::Int
@@ -72,8 +72,8 @@ function Model(comatrix; vecsize=100)
 end
 
 # fit! fits the Model to the data through the gradient descent variation.
-function fit!{T}(m::Model{T}, s::Adagrad; xmax::Int=100, alpha::T=0.75, verbose::Bool=false)
-    J = zero(T)
+function fit!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
+    J = 0.0
 
     shuffle!(m.covec)
 
@@ -125,7 +125,7 @@ function fit!{T}(m::Model{T}, s::Adagrad; xmax::Int=100, alpha::T=0.75, verbose:
             m.b_ctx_grad[l2] += fdiff
         end
 
-        verbose && n % 10 == 0 && println("iteration ", n, " cost ", J)
+        println("Iteration ", n, ", cost = ", J)
     end
 end
 
@@ -134,7 +134,7 @@ function similar_words{T, S<:Token}(M::Matrix{T}, v::Vocab, word::S; n::Int=10)
     c_id = v[word]
 
     dists = vec(M[:, c_id]' * M) / norm(M[:, c_id]) / norm(M, 1)
-    
+
     sorted_ids = sortperm(dists, rev=true)[1:n+1]
     sim_words = Token[]
 
@@ -147,8 +147,3 @@ function similar_words{T, S<:Token}(M::Matrix{T}, v::Vocab, word::S; n::Int=10)
     end
     sim_words
 end
-
-
-# Like similar_words except computes a similarity for all tokens in the Vocab at once.
-#= function similarity_matrix{T}(M::Matrix{T}, v::Vocab, id2word::Dict{Int, Token}, word::Token) =#
-#= end =#
