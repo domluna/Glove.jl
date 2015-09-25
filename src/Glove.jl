@@ -1,6 +1,9 @@
+isdefined(Base, :__precompile__) && __precompile__(true)
+
 module Glove
 
 import Base: insert!
+import DataStructures
 
 export Model, Vocab, Token, Cooccurence,
        Solver, Adagrad,

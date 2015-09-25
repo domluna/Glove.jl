@@ -1,77 +1,74 @@
-#
+
+# Redesign
+"""
+1. Get the user to work with LookupTable directly. Essentially it's just a utility
+struct.
+
+2. We should have a function that only reads a file once and builds the
+vocab and co-occurence matrix or dict if it turns out sparse matrices are
+too slow.
+
+3. Aside from the above function we shouldn't much else; don't want to be too
+opinionated. Provide the core data structures and let the user go from there.
+"""
+
 typealias Token Union(ASCIIString, UTF8String, SubString{ASCIIString}, SubString{UTF8String})
 
-# Vocab is a self-counting dictionary.
-# It maps words to ids and ids to words.
-#
-type Vocab
+"""
+LookupTable is a self-counting dictionary.
+It maps words to ids and ids to words.
+"""
+type LookupTable
     id2word::Dict{Int, Token}
     word2id::Dict{Token, Int}
 end
 
-Vocab() = Vocab(Dict{Int, Token}(), Dict{Token, Int}())
-
-# Inserts the word in the Vocab.
-# If the word is already in the Vocab
-# nothing is done.
-function insert!{T<:Token}(v::Vocab, word::T)
-    if !haskey(v.word2id, word)
-      id = length(v.id2word) + 1
-      v.word2id[word] = id
-      v.id2word[id] = word
+LookupTable() = LookupTable(Dict{Int, Token}(), Dict{Token, Int}())
+function LookupTable(tokens::Array)
+    table = LookupTable()
+    @inbounds for i = 1:length(tokens)
+      insert!(table, tokens[i])
     end
+    table
 end
 
-Base.getindex(v::Vocab, id::Int) = getindex(v.id2word, id)
-Base.getindex{T<:Token}(v::Vocab, word::T) = getindex(v.word2id, word)
-Base.length(v::Vocab) = length(v.id2word)
-
-# Creates the Vocab from a textfile.
-function make_vocab(path::String)
-    v = Vocab()
-    open(path) do f
-        for line = eachline(f)
-            tokens = split(line)
-            @inbounds for i = 1:length(tokens)
-                insert!(v, tokens[i])
-            end
-        end
+function insert!{T<:Token}(table::LookupTable, word::T)
+    if !haskey(table.word2id, word)
+      id = length(table.id2word) + 1
+      table.word2id[word] = id
+      table.id2word[id] = word
     end
-    v
 end
+Base.getindex(table::LookupTable, id::Int) = getindex(table.id2word, id)
+Base.getindex{T<:Token}(table::LookupTable, word::T) = getindex(table.word2id, word)
+Base.length(table::LookupTable) = length(table.id2word)
 
-# Creates the Vocab from a String array in memory.
-function make_vocab{T<:Token}(corpus::Vector{T})
-    v = Vocab()
-    @inbounds for i = 1:length(corpus)
-        insert!(v, corpus[i])
-    end
-    v
-end
-
-# make_cooccur creates the co-occurence matrix X. X is symmetric.
-# The window_size determines how many of the surrounding tokens should
-# be guaranteed as a context token to the main token.
-function make_cooccur(v::Vocab, filename::String; window_size::Int=10)
-    comatrix = spzeros(length(v), length(v))
-    open(filename) do f
+"""
+make_cooccur creates the co-occurence matrix X. X is symmetric.
+The `window_size` param determines how many of the surrounding tokens
+should be considered a context token to the main token.
+"""
+function make_cooccur(table::LookupTable, filepath::String; window_size::Int=10)
+    comatrix = DataStructures.DefaultDict(NTuple{2,Int}, Float64, 0.0)
+    open(filepath) do f
         for line = eachline(f)
             tokens = split(line)
             for i = 1:length(tokens)
-                @inbounds t = tokens[i]
-                c_id = v[t]
+                @inbounds mtok = tokens[i]
+                mtok_id = table[mtok]
 
-                for li = max(1, i - window_size):i-1
-                    @inbounds lt = tokens[li]
-                    l_id = v[lt]
+                for j = max(1, i - window_size):i-1
+                    @inbounds ctok = tokens[j]
+                    ctok_id = table[ctok]
 
-                    # tokens that are d spaces spart, contribute
-                    # 1.0 / d to the total count.
-                    incr = 1.0 / (i - li)
+                    # The farther away the context token is from the
+                    # main token the less it contributes
+                    dist = i - j
+                    incr = 1.0 / dist
 
-                    # symmetry
-                    @inbounds comatrix[c_id, l_id] += incr
-                    @inbounds comatrix[l_id, c_id] += incr
+                    # Symmetric context
+                    comatrix[mtok_id, ctok_id] += incr
+                    comatrix[ctok_id, mtok_id] += incr
                 end
             end
         end
@@ -79,26 +76,25 @@ function make_cooccur(v::Vocab, filename::String; window_size::Int=10)
     comatrix
 end
 
+function make_cooccur(table::LookupTable, tokens::Array; window_size::Int=10)
+    comatrix = DataStructures.DefaultDict(NTuple{2,Int}, Float64, 0.0)
+    for i = 1:length(tokens)
+      @inbounds mtok = tokens[i]
+      mtok_id = table[mtok]
 
-function make_cooccur{T<:Token}(v::Vocab, corpus::Vector{T}; window_size::Int=10)
-    comatrix = spzeros(length(v), length(v))
-    for i = 1:length(corpus)
-        @inbounds token = corpus[i]
-        c_id = v[token]
+      for j = max(1, i - window_size):i-1
+        @inbounds ctok = tokens[j]
+        ctok_id = table[ctok]
 
-        for li = max(1, i - window_size):i-1
-            @inbounds lt = corpus[li]
-            l_id = v[lt]
+        # The farther away the context token is from the
+        # main token the less it contributes
+        dist = i - j
+        incr = 1.0 / dist
 
-            # tokens that are d spaces spart, contribute
-            # 1.0 / d to the total count.
-            incr = 1.0 / (i - li)
-
-            # symmetry
-            @inbounds comatrix[c_id, l_id] += incr
-            @inbounds comatrix[l_id, c_id] += incr
-        end
-        i % 10_000 == 0 && println("Done iteration ", i)
+        # Symmetric context
+        comatrix[mtok_id, ctok_id] += incr
+        comatrix[ctok_id, mtok_id] += incr
+      end
     end
     comatrix
 end

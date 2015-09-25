@@ -1,26 +1,3 @@
-# Cooccurence represents a co-occurence between two tokens.
-# i is the id of the main token, j is the id of the context token.
-# v is the co-occurence value between the two tokens.
-immutable Cooccurence{Ti,Tj<:Int, T}
-    i::Ti
-    j::Tj
-    v::T
-end
-
-# make_covector creates an Vector of Cooccurence's.
-#
-# TODO: Once Sparse Matrices are good enough this
-# will no longer be required.
-function make_covector{T}(comatrix::SparseMatrixCSC{T})
-    aa = findnz(comatrix)
-    n = length(aa[1])
-    a = Array(Cooccurence{Int, Int, T}, n)
-    @inbounds for i = 1:n
-        a[i] = Cooccurence(aa[1][i], aa[2][i], aa[3][i])
-    end
-    a
-end
-
 # Solver represents a solver using some variation of Gradient Descent.
 # http://en.wikipedia.org/wiki/Gradient_descent
 abstract Solver
@@ -33,9 +10,8 @@ type Adagrad{T} <: Solver
     epochs::Int
     lrate::T
 end
-
-# 0.05 is the learning rate used in the paper
-Adagrad(epochs) = Adagrad(epochs, 0.05)
+# 1e-2 is the learning rate used in the paper
+Adagrad(epochs) = Adagrad(epochs, 1e-2)
 Adagrad(epochs, lrate) = Adagrad(epochs, lrate)
 
 # Glove model
@@ -56,17 +32,16 @@ end
 # the gradients to 1.0.
 #
 # The +1 term is for the bias.
-function Model(comatrix; vecsize=100)
-    vs = size(comatrix, 1)
+function Model(comatrix, vocabsize, vecsize)
     Model(
-        (rand(vecsize, vs) - 0.5) / (vecsize + 1),
-        (rand(vecsize, vs) - 0.5) / (vecsize + 1),
-        (rand(vs) - 0.5) / (vecsize + 1),
-        (rand(vs) - 0.5) / (vecsize + 1),
-        ones(vecsize, vs),
-        ones(vecsize, vs),
-        ones(vs),
-        ones(vs),
+        (rand(vecsize, vocabsize) - 0.5) / (vecsize + 1),
+        (rand(vecsize, vocabsize) - 0.5) / (vecsize + 1),
+        (rand(vocabsize) - 0.5) / (vecsize + 1),
+        (rand(vocabsize) - 0.5) / (vecsize + 1),
+        ones(vecsize, vocabsize),
+        ones(vecsize, vocabsize),
+        ones(vocabsize),
+        ones(vocabsize),
         make_covector(comatrix),
     )
 end
