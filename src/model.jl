@@ -15,7 +15,7 @@ Adagrad(epochs) = Adagrad(epochs, 1e-2)
 Adagrad(epochs, lrate) = Adagrad(epochs, lrate)
 
 # Glove model
-type Model{T}
+type Model{T<:AbstractFloat}
     W_main::Matrix{T}
     W_ctx::Matrix{T}
     b_main::Vector{T}
@@ -24,7 +24,7 @@ type Model{T}
     W_ctx_grad::Matrix{T}
     b_main_grad::Vector{T}
     b_ctx_grad::Vector{T}
-    covec::Vector{Cooccurence{Int, Int, T}}
+    covec::Vector{Tuple{Int, Int, T}}
 end
 
 # Each vocab word in associated with a word vector and a context vector.
@@ -32,7 +32,7 @@ end
 # the gradients to 1.0.
 #
 # The +1 term is for the bias.
-function Model(comatrix, vocabsize, vecsize)
+function Model(covector, vocabsize::Int, vecsize::Int)
     Model(
         (rand(vecsize, vocabsize) - 0.5) / (vecsize + 1),
         (rand(vecsize, vocabsize) - 0.5) / (vecsize + 1),
@@ -46,8 +46,7 @@ function Model(comatrix, vocabsize, vecsize)
     )
 end
 
-# fit! fits the Model to the data through the gradient descent variation.
-function fit!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
+function fit!(m::Model, s::Adagrad; xmax::Int=100, alpha=0.75)
     J = 0.0
 
     shuffle!(m.covec)
@@ -104,8 +103,14 @@ function fit!(m::Model, s::Adagrad; xmax=100, alpha=0.75)
     end
 end
 
-# similar_words returns the n most similar words
-function similar_words{T, S<:Token}(M::Matrix{T}, v::Vocab, word::S; n::Int=10)
+# TODO: move this out into an example of how to use
+# the final results.
+function similar_words{T, S<:Token}(
+  M::Matrix{T},
+  table::LookupTable,
+  word::S;
+  n::Int=10)
+
     c_id = v[word]
 
     dists = vec(M[:, c_id]' * M) / norm(M[:, c_id]) / norm(M, 1)

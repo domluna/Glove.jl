@@ -5,7 +5,7 @@ module Glove
 import Base: insert!
 import DataStructures
 
-export Model, Vocab, Token, Cooccurence,
+export Model, LookupTable, Token,
        Solver, Adagrad,
        make_vocab, make_cooccur,
        similar_words, fit!
@@ -18,7 +18,8 @@ end
 # Not sure if I'll need this yet.
 using Compat
 
-include("corpus.jl")
+include("lookuptable.jl")
+include("cooccurence.jl")
 include("model.jl")
 
 end
