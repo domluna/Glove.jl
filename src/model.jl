@@ -1,19 +1,3 @@
-# Solver represents a solver using some variation of Gradient Descent.
-# http://en.wikipedia.org/wiki/Gradient_descent
-abstract Solver
-
-# Adagrad is the method used for optimization in the paper. However,
-# other methods may show better results.
-#
-# http://www.ark.cs.cmu.edu/cdyer/adagrad.pdf
-type Adagrad{T} <: Solver
-    epochs::Int
-    lrate::T
-end
-# 1e-2 is the learning rate used in the paper
-Adagrad(epochs) = Adagrad(epochs, 1e-2)
-Adagrad(epochs, lrate) = Adagrad(epochs, lrate)
-
 # Glove model
 type Model{T<:AbstractFloat}
     W_main::Matrix{T}
@@ -24,7 +8,6 @@ type Model{T<:AbstractFloat}
     W_ctx_grad::Matrix{T}
     b_main_grad::Vector{T}
     b_ctx_grad::Vector{T}
-    covec::Vector{Tuple{Int, Int, T}}
 end
 
 # Each vocab word in associated with a word vector and a context vector.
@@ -32,7 +15,7 @@ end
 # the gradients to 1.0.
 #
 # The +1 term is for the bias.
-function Model(covector, vocabsize::Int, vecsize::Int)
+function Model(vocabsize::Int, vecsize::Int)
     Model(
         (rand(vecsize, vocabsize) - 0.5) / (vecsize + 1),
         (rand(vecsize, vocabsize) - 0.5) / (vecsize + 1),
@@ -42,14 +25,17 @@ function Model(covector, vocabsize::Int, vecsize::Int)
         ones(vecsize, vocabsize),
         ones(vocabsize),
         ones(vocabsize),
-        make_covector(comatrix),
     )
 end
 
-function fit!(m::Model, s::Adagrad; xmax::Int=100, alpha=0.75)
-    J = 0.0
+function adagrad!(m::Model,
+  covec::CooccurenceVector,
+  epochs::Int;
+  lrate=1e-2,
+  xmax::Int=100,
+  alpha=0.75)
 
-    shuffle!(m.covec)
+    J = 0.0
 
     vecsize = size(m.W_main, 1)
     S = eltype(m.b_main)
@@ -58,12 +44,12 @@ function fit!(m::Model, s::Adagrad; xmax::Int=100, alpha=0.75)
     grad_main = zeros(S, vecsize)
     grad_ctx = zeros(S, vecsize)
 
-    for n = 1:s.epochs
+    for n = 1:epochs
         # shuffle indices
-        for i = 1:length(m.covec)
-            @inbounds l1 = m.covec[i].i # main index
-            @inbounds l2 = m.covec[i].j # context index
-            @inbounds v = m.covec[i].v
+        for i = 1:length(covec)
+            @inbounds l1 = covec[i].i # main index
+            @inbounds l2 = covec[i].j # context index
+            @inbounds v = covec[i].v
 
             @inbounds for j = 1:vecsize
                 vm[j] = m.W_main[j, l1]
@@ -74,7 +60,7 @@ function fit!(m::Model, s::Adagrad; xmax::Int=100, alpha=0.75)
             fdiff = ifelse(v < xmax, (v / xmax) ^ alpha, one(T)) * diff
             J += 0.5 * fdiff * diff
 
-            fdiff *= s.lrate
+            fdiff *= lrate
             @inbounds for j = 1:vecsize
                 grad_main[j] = fdiff * m.W_ctx[j, l2]
                 grad_ctx[j] = fdiff * m.W_main[j, l1]
@@ -98,7 +84,6 @@ function fit!(m::Model, s::Adagrad; xmax::Int=100, alpha=0.75)
             m.b_main_grad[l1] += fdiff
             m.b_ctx_grad[l2] += fdiff
         end
-
         println("Iteration ", n, ", cost = ", J)
     end
 end
