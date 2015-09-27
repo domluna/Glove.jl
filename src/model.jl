@@ -29,8 +29,8 @@ function Model(vocabsize::Int, vecsize::Int)
 end
 
 function adagrad!(m::Model,
-  covec::CooccurenceVector,
-  epochs::Int;
+  covec::CooccurenceVector;
+  epochs::Int=25,
   lrate=1e-2,
   xmax::Int=100,
   alpha=0.75)

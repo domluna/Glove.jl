@@ -6,9 +6,8 @@ import Base: insert!
 import DataStructures
 
 export Model, LookupTable, Token,
-       Solver, Adagrad,
-       make_vocab, make_cooccur,
-       similar_words, fit!
+       CooccurenceDict, CooccurenceVector,
+       getcounts, similar_words, adagrad!
 
 
 if VERSION < v"0.4.0-dev"

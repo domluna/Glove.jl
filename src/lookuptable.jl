@@ -10,7 +10,7 @@ type LookupTable
 end
 
 LookupTable() = LookupTable(Dict{Int, Token}(), Dict{Token, Int}())
-function call(::Type{LookupTable}, tokens::Array)
+function call(::Type{LookupTable}, tokens::Vector)
     table = LookupTable()
     @inbounds for i = 1:length(tokens)
       insert!(table, tokens[i])
