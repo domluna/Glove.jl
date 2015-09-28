@@ -18,8 +18,6 @@ function call(::Type{LookupTable}, tokens::Vector)
     table
 end
 
-"""
-"""
 function insert!{T<:Token}(table::LookupTable, word::T)
     if !haskey(table.word2id, word)
       id = length(table.id2word) + 1
@@ -27,9 +25,12 @@ function insert!{T<:Token}(table::LookupTable, word::T)
       table.id2word[id] = word
     end
 end
-Base.getindex(table::LookupTable, id::Int) = getindex(table.id2word, id)
-Base.getindex{T<:Token}(table::LookupTable, word::T) = getindex(table.word2id, word)
-Base.length(table::LookupTable) = length(table.id2word)
+
+getindex{T<:Token}(table::LookupTable, word::T) = getindex(table.word2id, word)
+getindex(table::LookupTable, id::Int) = getindex(table.id2word, id)
+haskey{T<:Token}(table::LookupTable, word::T) = haskey(table.word2id, word)
+haskey(table::LookupTable, id::Int) = haskey(table.id2word, id)
+length(table::LookupTable) = length(table.id2word)
 
 # function Base.show(io::IO, lt::LookupTable)
 #   println(io, "LookupTable with: ", length(lt), "elements")

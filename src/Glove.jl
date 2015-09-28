@@ -2,12 +2,12 @@ isdefined(Base, :__precompile__) && __precompile__(true)
 
 module Glove
 
-import Base: insert!
+import Base: insert!, haskey, getindex, length
 import DataStructures
 
 export Model, LookupTable, Token,
        CooccurenceDict, CooccurenceVector,
-       getcounts, similar_words, adagrad!
+       weightedsums, similar_words, adagrad!
 
 
 if VERSION < v"0.4.0-dev"
