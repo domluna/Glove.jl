@@ -52,7 +52,7 @@ function adagrad!{T<:AbstractFloat}(
             val = pair[3] # value
 
             diff = m.b_main[midx] + m.b_ctx[cidx] - log(val)
-            @inbounds for j = 1:vecsize
+            @inbounds @simd for j = 1:vecsize
               diff += m.W_main[j, midx] * m.W_ctx[j, cidx]
             end
 
@@ -61,7 +61,7 @@ function adagrad!{T<:AbstractFloat}(
 
             # Adaptive learning gradient updates
             fdiff *= lrate
-            @inbounds for j = 1:vecsize
+            @inbounds @simd for j = 1:vecsize
                 tm = fdiff * m.W_ctx[j, cidx]
                 tc = fdiff * m.W_main[j, midx]
                 m.W_main[j, midx] -= tm / sqrt(m.W_main_grad[j, midx])

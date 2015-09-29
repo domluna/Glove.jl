@@ -7,7 +7,7 @@ import DataStructures
 
 export Model, LookupTable, Token,
        CooccurenceDict, CooccurenceVector,
-       weightedsums, similar_words, adagrad!
+       weightedsums, adagrad!
 
 
 if VERSION < v"0.4.0-dev"
