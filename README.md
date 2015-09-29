@@ -5,60 +5,31 @@ Glove
 
 Implements [Global Word Vectors](http://nlp.stanford.edu/projects/glove/).
 
-### Install
-
-For now it's not on the main registry so
-
-```julia
+```
 Pkg.clone("https://github.com/domluna/Glove.jl.git")
 ```
 
-### Usage
+See `benchmark/perf.jl` for a usage example.
 
-```julia
-using Glove
+Here's the rough idea:
 
-# Path to some text file.
-corpus = "somefile"
+1. Take text and make a LookupTable. This is a dictionary that has a map
+from words -> ids and vice-versa. Preprocessing steps should be taken
+prior to this.
 
-vocab = Glove.make_vocab(corpus)
-comatrix = Glove.make_cooccur(vocab, corpus)
+2. Use `weightedsums` to get the weighted co-occurence sum totals. This returns
+a `CooccurenceDict`.
 
-# Word vectors will be represented by 25 floating point values.
-model = Glove.Model(comatrix, vecsize=25)
+3. Convert the `CooccurenceDict` to a `CooccurenceVector`. The reasoning for this is faster indexing when we train the model.
 
-# Run Adagrad for 50 epochs.
-solver = Glove.Adagrad(50)
+4. Initialize a `Model` and train the model with the `CooccurenceVector` using
+the `agagrad!` method.
 
-fit!(model, solver, verbose=true)
-
-# We now have a fit Glove model!
-```
-
-### Caveats
-
-1. File I/O is very slow
-
-Temporary solution. Load the file into main memory and go from there.
-
-```julia
-using Glove
-
-v = Vocab()
-corpus = split(readall("file"))
-
-@inbounds for i = 1:length(corpus)
-    v[corpus[i]]
-end
-```
-2. Sparse matrices are very slow
-
-For now I think using a Dict would be best.
-
-Hopefully these will get faster soon but for now I would recommend
-not to use it on large datasets.
+It's pretty fast at this point. On a single core it's roughly 3x slower than the optimized C version.
 
 ### TODO
 
-1. Benchmark vs C implementation
-2. Nice notebook example
+[ ] More docs.
+[ ] See if precompile(args...) does anything
+[ ] Notebook example ( has to have emojis )
+[ ] Multi-threading

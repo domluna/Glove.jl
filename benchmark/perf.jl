@@ -2,13 +2,16 @@
 # Mimics the setup in demo.sh for Stanford's C implementation.
 # Roughly ~3x slower than the C model as of 09/28/15
 #
+# The dataset is from char-rnn.
+#
+# To Download go to
 using Glove
 using DataStructures
 
 S = Float64
 println("Using type: ", S)
 
-file = "data/shakespeare.txt"
+file = "input.txt"
 tokens = split(readall(file))
 println("Counted ", length(tokens), " tokens")
 ct = counter(tokens)
