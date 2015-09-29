@@ -29,10 +29,10 @@ It's pretty fast at this point. On a single core it's roughly 3x slower than the
 
 ### TODO
 
-[ ] More docs.
+[  ] More docs.
 
-[ ] See if precompile(args...) does anything
+[  ] See if precompile(args...) does anything
 
-[ ] Notebook example ( has to have emojis )
+[  ] Notebook example ( has to have emojis )
 
-[ ] Multi-threading
+[  ] Multi-threading
