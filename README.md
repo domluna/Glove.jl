@@ -2,6 +2,7 @@ Glove
 -----
 
 [![Build Status](https://travis-ci.org/domluna/Glove.jl.svg?branch=master)](https://travis-ci.org/domluna/GloVe.jl)
+[![Coverage Status](https://coveralls.io/repos/domluna/Glove.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/domluna/Glove.jl?branch=master)
 
 Implements [Global Word Vectors](http://nlp.stanford.edu/projects/glove/).
 
