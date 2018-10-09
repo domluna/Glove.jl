@@ -1,24 +1,27 @@
-typealias Token Union(ASCIIString, UTF8String, SubString{ASCIIString}, SubString{UTF8String})
+import Base.convert
+
+Token = Union{String, SubString{String}}
 
 """
 LookupTable is a self-counting dictionary.
 It maps words to ids and ids to words.
 """
-type LookupTable
+struct LookupTable
     id2word::Dict{Int, Token}
     word2id::Dict{Token, Int}
-end
 
-LookupTable() = LookupTable(Dict{Int, Token}(), Dict{Token, Int}())
-function call(::Type{LookupTable}, tokens::Vector)
-    table = LookupTable()
-    @inbounds for i = 1:length(tokens)
-      insert!(table, tokens[i])
+    LookupTable() = new(Dict{Int, Token}(), Dict{Token, Int}())
+
+    function LookupTable(tokens::Vector)
+        table = LookupTable()
+        @inbounds for i = 1:length(tokens)
+          insert!(table, tokens[i])
+        end
+        return table
     end
-    table
 end
 
-function insert!{T<:Token}(table::LookupTable, word::T)
+function insert!(table::LookupTable, word::T) where T<:Token
     if !haskey(table.word2id, word)
       id = length(table.id2word) + 1
       table.word2id[word] = id
@@ -26,16 +29,8 @@ function insert!{T<:Token}(table::LookupTable, word::T)
     end
 end
 
-getindex{T<:Token}(table::LookupTable, word::T) = getindex(table.word2id, word)
+getindex(table::LookupTable, word::T) where T<:Token = getindex(table.word2id, word)
 getindex(table::LookupTable, id::Int) = getindex(table.id2word, id)
-haskey{T<:Token}(table::LookupTable, word::T) = haskey(table.word2id, word)
+haskey(table::LookupTable, word::T) where T<:Token = haskey(table.word2id, word)
 haskey(table::LookupTable, id::Int) = haskey(table.id2word, id)
 length(table::LookupTable) = length(table.id2word)
-
-# function Base.show(io::IO, lt::LookupTable)
-#   println(io, "LookupTable with: ", length(lt), "elements")
-#   println(io, "id2word lookup:")
-#   println(io, lt.id2word)
-#   println(io, "word2id lookup:")
-#   println(io, lt.word2id)
-# end

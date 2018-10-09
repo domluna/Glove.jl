@@ -7,7 +7,8 @@ Glove
 Implements [Global Word Vectors](http://nlp.stanford.edu/projects/glove/).
 
 ```
-Pkg.clone("https://github.com/domluna/Glove.jl.git")
+using Pkg
+Pkg.add("https://github.com/domluna/Glove.jl.git")
 ```
 
 See `benchmark/perf.jl` for a usage example.

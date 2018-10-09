@@ -1,12 +1,13 @@
 using Glove
-using Base.Test
+using Test
+using LinearAlgebra
 
 # Anything <: AbstractFloat, just here for easy use
 S = Float32
 
 # Test from python Glove implementation.
 # https://github.com/maciejkula/glove-python/tree/master/glove/tests
-corpus1 = split(readall("data/corpus_test1.txt"))
+corpus1 = split(read("data/corpus_test1.txt", String))
 table = LookupTable(corpus1)
 @test table.word2id == Dict("a" => 1, "naive" => 2, "fox" => 3)
 @test table.id2word == Dict(1 => "a", 2 => "naive",  3 => "fox")
@@ -28,7 +29,7 @@ codict = weightedsums(S, table, corpus1)
 @test codict[(3,2)] == 1.0
 @test codict[(3,3)] == 0.0
 
-corpus2 = split(readall("data/corpus_test2.txt"))
+corpus2 = split(read("data/corpus_test2.txt", String))
 table = LookupTable(corpus2)
 codict = weightedsums(S, table, corpus2)
 
@@ -36,7 +37,7 @@ cokeys = collect(keys(codict))
 covals = collect(values(codict))
 
 n = length(codict)
-covec = CooccurenceVector{S}(n)
+covec = CooccurenceVector{S}(undef, n)
 
 @inbounds for i=1:n
   covec[i] = (cokeys[i][1], cokeys[i][2], covals[i])
@@ -62,11 +63,11 @@ adagrad!(S, model, covec, 500)
 @test eltype(model.W_main) == S
 
 # similar words
-function similar_words{T, S<:Token}(
+function similar_words(
   M::Matrix{T},
   table::LookupTable,
   word::S;
-  n::Int=10)
+  n::Int=10) where {T, S<:Token}
 
     c_id = table[word]
 
