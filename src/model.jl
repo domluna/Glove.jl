@@ -1,5 +1,5 @@
 # Glove model
-type Model{T<:AbstractFloat}
+struct Model{T<:AbstractFloat}
     W_main::Matrix{T}
     W_ctx::Matrix{T}
     b_main::Vector{T}
@@ -17,13 +17,13 @@ the gradients to 1.0.
 
 The +1 term is for the bias.
 """
-function Model{T<:AbstractFloat}(::Type{T}, vocabsize::Int, vecsize::Int)
-    const shift = T(0.5)
+function Model(::Type{T}, vocabsize::Int, vecsize::Int) where T<:AbstractFloat
+    shift = T(0.5)
     Model(
-        (rand(T, vecsize, vocabsize) - shift) / T(vecsize + 1),
-        (rand(T, vecsize, vocabsize) - shift) / T(vecsize + 1),
-        (rand(T, vocabsize) - shift) / T(vecsize + 1),
-        (rand(T, vocabsize) - shift) / T(vecsize + 1),
+        (rand(T, vecsize, vocabsize) .- shift) ./ T(vecsize + 1),
+        (rand(T, vecsize, vocabsize) .- shift) ./ T(vecsize + 1),
+        (rand(T, vocabsize) .- shift) ./ T(vecsize + 1),
+        (rand(T, vocabsize) .- shift) ./ T(vecsize + 1),
         ones(T, vecsize, vocabsize),
         ones(T, vecsize, vocabsize),
         ones(T, vocabsize),
@@ -31,14 +31,14 @@ function Model{T<:AbstractFloat}(::Type{T}, vocabsize::Int, vecsize::Int)
     )
 end
 
-function adagrad!{T<:AbstractFloat}(
+function adagrad!(
   ::Type{T},
   m::Model{T},
   covec::CooccurenceVector{T},
   epochs::Int;
   lrate=T(1e-2),
   xmax::Int=100,
-  alpha=T(0.75))
+  alpha=T(0.75)) where T<:AbstractFloat
 
     # store the cost per iteration
     costs = zeros(T, epochs)

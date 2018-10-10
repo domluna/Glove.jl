@@ -12,11 +12,11 @@ S = Float64
 println("Using type: ", S)
 
 file = "input.txt"
-tokens = split(readall(file))
+tokens = split(read(file, String))
 println("Counted ", length(tokens), " tokens")
 ct = counter(tokens)
 println("Counted ", length(ct.map), " unique tokens")
-filter!((k,v) -> v >= 5, ct.map)
+filter!((e) -> e.second >= 5, ct.map)
 println("Counted ", length(ct.map), " filtered tokens")
 
 filtered_tokens = collect(keys(ct))
@@ -31,7 +31,7 @@ println("after jit ...")
 
 # make the covec
 n = length(codict)
-covec = CooccurenceVector{S}(n)
+covec = CooccurenceVector{S}(undef, n)
 cokeys = collect(keys(codict))
 covals = collect(values(codict))
 @inbounds for i=1:n

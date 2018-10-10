@@ -1,20 +1,19 @@
 #
 # Co-occurence data structures
 #
-typealias CooccurenceDict{T<:AbstractFloat} DataStructures.DefaultDict{NTuple{2, Int}, T, T}
-typealias CooccurenceVector{T<:AbstractFloat} Vector{Tuple{Int, Int, T}}
+CooccurenceDict{T<:AbstractFloat} = DataStructures.DefaultDict{NTuple{2, Int}, T, T}
+CooccurenceVector{T<:AbstractFloat} = Vector{Tuple{Int, Int, T}}
 
+# TODO: better name
+# TODO: not sure how the coccurences thing works here yet
 """
 weightedsums counts the co-occurences as specified
 in the GloVe paper.
 
 Returns a `CooccurenceDict` with the weighted co-occurence sum.
 """
-# TODO: better name
-# TODO: not sure how the coccurences thing works here yet
-function weightedsums{T<:AbstractFloat}(::Type{T}, table::LookupTable,
-  tokens::Vector;
-  window::Int=10)
+function weightedsums(::Type{T}, table::LookupTable, tokens::Vector;
+  window::Int=10) where T<:AbstractFloat
 
     codict = CooccurenceDict{T}(T(0.0))
 

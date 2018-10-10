@@ -9,13 +9,9 @@ export Model, LookupTable, Token,
        CooccurenceDict, CooccurenceVector,
        weightedsums, adagrad!
 
-
-if VERSION < v"0.4.0-dev"
-    using Docile
-end
-
 # Not sure if I'll need this yet.
 using Compat
+using LinearAlgebra
 
 include("lookuptable.jl")
 include("cooccurence.jl")
