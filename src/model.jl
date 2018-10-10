@@ -20,10 +20,10 @@ The +1 term is for the bias.
 function Model(::Type{T}, vocabsize::Int, vecsize::Int) where T<:AbstractFloat
     shift = T(0.5)
     Model(
-        (rand(T, vecsize, vocabsize) .- shift) / T(vecsize + 1),
-        (rand(T, vecsize, vocabsize) .- shift) / T(vecsize + 1),
-        (rand(T, vocabsize) .- shift) / T(vecsize + 1),
-        (rand(T, vocabsize) .- shift) / T(vecsize + 1),
+        (rand(T, vecsize, vocabsize) .- shift) ./ T(vecsize + 1),
+        (rand(T, vecsize, vocabsize) .- shift) ./ T(vecsize + 1),
+        (rand(T, vocabsize) .- shift) ./ T(vecsize + 1),
+        (rand(T, vocabsize) .- shift) ./ T(vecsize + 1),
         ones(T, vecsize, vocabsize),
         ones(T, vecsize, vocabsize),
         ones(T, vocabsize),
